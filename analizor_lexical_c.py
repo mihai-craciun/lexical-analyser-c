@@ -351,7 +351,7 @@ class Dfa():
                 [anything, self.STATES['END']],
             ],
             self.STATES['EXPONENT']: [
-                [is_negative_sign, self.STATES['EXPONENT_VALUE']],
+                [lambda x: x == '-', self.STATES['EXPONENT_VALUE']],
                 [lambda x: x == '+', self.STATES['EXPONENT_VALUE']],
                 [is_digit, self.STATES['EXPONENT_VALUE']],
                 [anything, self.STATES['ERROR']],
