@@ -23,7 +23,8 @@ class Tokenizer():
 
         MAPPER = {
             'CHARACTER_CAN_BE_FOLLOWED_BY_EQUAL': 'OPERATOR',
-            'STRING_SIMPLE_QUOTES_END': 'STRING',
+            'STRING_END': 'STRING',
+            'CHAR_END': 'CHAR',
             'CHARACTER': 'OPERATOR',
             'GROUP_CHARACTER': 'GROUP_OPERATOR',
             'MULTI_LINE_COMMENT_END': 'MULTI_LINE_COMMENT',
@@ -55,14 +56,24 @@ class Dfa():
         'CHARACTER',
         'NUMBER',
         'COMMENT',
+        # Comments
         'SINGLE_LINE_COMMENT',
         'MULTI_LINE_COMMENT',
         'MULTI_LINE_COMMENT_STAR',
         'MULTI_LINE_COMMENT_END',
-        'STRING_SIMPLE_QUOTES',
-        'STRING_DOUBLE_QUOTES',
-        'STRING_SIMPLE_QUOTES_END',
-        'STRING_DOUBLE_QUOTES_END',
+        # Char
+        'CHAR',
+        'CHAR_ESCAPE',
+        'CHAR_ESCAPE_X',
+        'CHAR_ESCAPE_HEX1',
+        'CHAR_ESCAPE_OCTAL1',
+        'CHAR_ESCAPE_OCTAL2',
+        'CHAR_CHARACTER',
+        'CHAR_END',
+        # String
+        'STRING',
+        'STRING_ESCAPE',
+        'STRING_END',
         'NEGATIVE_SIGN',
         'FLOAT_NUMBER',
         'ESCAPING',
@@ -98,8 +109,8 @@ class Dfa():
                 [is_character_can_be_followed_by_equal, self.STATES['CHARACTER_CAN_BE_FOLLOWED_BY_EQUAL']],
                 [is_character, self.STATES['CHARACTER']],
                 [is_slash, self.STATES['COMMENT']],
-                [is_simple_quote, self.STATES['STRING_SIMPLE_QUOTES']],
-                [is_double_quote, self.STATES['STRING_DOUBLE_QUOTES']],
+                [is_single_quote, self.STATES['CHAR']],
+                [is_double_quote, self.STATES['STRING']],
                 [anything, self.STATES['ERROR']],
             ],
             self.STATES['IDENTIFIER']: [
@@ -115,6 +126,53 @@ class Dfa():
                 [anything, self.STATES['END']],
             ],
             self.STATES['CHARACTER']: [
+                [anything, self.STATES['END']],
+            ],
+            self.STATES['CHAR']: [
+                [is_escape, self.STATES['CHAR_ESCAPE']],
+                [is_char, self.STATES['CHAR_CHARACTER']],
+                [anything, self.STATES['ERROR']],
+            ],
+            self.STATES['CHAR_CHARACTER']: [
+                [is_single_quote, self.STATES['CHAR_END']],
+                [anything, self.STATES['ERROR']],
+            ],
+            self.STATES['CHAR_ESCAPE']: [
+                [is_digit, self.STATES['CHAR_ESCAPE_OCTAL1']],
+                [lambda c: c == 'x', self.STATES['CHAR_ESCAPE_X']],
+                [is_char, self.STATES['CHAR_CHARACTER']],
+                [anything, self.STATES['ERROR']],
+            ],
+            self.STATES['CHAR_ESCAPE_OCTAL1']: [
+                [is_digit, self.STATES['CHAR_ESCAPE_OCTAL2']],
+                [anything, self.STATES['ERROR']],
+            ],
+            self.STATES['CHAR_ESCAPE_OCTAL2']: [
+                [is_digit, self.STATES['CHAR_CHARACTER']],
+                [anything, self.STATES['ERROR']],
+            ],
+            self.STATES['CHAR_ESCAPE_X']: [
+                [is_hexa_char, self.STATES['CHAR_ESCAPE_HEX1']],
+                [anything, self.STATES['ERROR']],
+            ],
+            self.STATES['CHAR_ESCAPE_HEX1']: [
+                [is_hexa_char, self.STATES['CHAR_CHARACTER']],
+                [anything, self.STATES['ERROR']],
+            ],
+            self.STATES['CHAR_END']: [
+                [anything, self.STATES['END']],
+            ],
+            self.STATES['STRING']: [
+                [is_double_quote, self.STATES['STRING_END']],
+                [is_escape, self.STATES['STRING_ESCAPE']],
+                [is_char, self.STATES['STRING']],
+                [anything, self.STATES['ERROR']],
+            ],
+            self.STATES['STRING_ESCAPE']: [
+                [is_char, self.STATES['STRING']],
+                [anything, self.STATES['ERROR']],
+            ],
+            self.STATES['STRING_END']: [
                 [anything, self.STATES['END']],
             ],
             self.STATES['NUMBER']: [
@@ -147,26 +205,9 @@ class Dfa():
                 [is_newline, self.STATES['END']],
                 [anything, self.STATES['SINGLE_LINE_COMMENT']]
             ],
-            self.STATES['STRING_SIMPLE_QUOTES']: [
-                [is_escape, self.STATES['ESCAPING']],
-                [is_simple_quote, self.STATES['STRING_SIMPLE_QUOTES_END']],
-                [is_newline, self.STATES['ERROR']],
-                [anything, self.STATES['STRING_SIMPLE_QUOTES']],
-            ],
-            self.STATES['STRING_SIMPLE_QUOTES_END']: [
-                [anything, self.STATES['END']]
-            ],
             self.STATES['NEGATIVE_SIGN']: [
                 [is_digit, self.STATES['NUMBER']],
                 [anything, self.STATES['CHARACTER']],
-            ],
-            self.STATES['ESCAPING']: [
-                [is_escape, self.STATES['STRING_SIMPLE_QUOTES']],
-                [is_simple_quote, self.STATES['STRING_SIMPLE_QUOTES']],
-                [anything, self.STATES['CHARACTER_ESCAPED']],
-            ],
-            self.STATES['CHARACTER_ESCAPED']: [
-                [anything, self.STATES['STRING_SIMPLE_QUOTES']],
             ],
             self.STATES['CHARACTER_CAN_BE_FOLLOWED_BY_EQUAL']: [
                 [is_equal, self.STATES['GROUP_CHARACTER']],
@@ -197,7 +238,7 @@ class Dfa():
 
     def consume(self):
         if self.position == len(self.input):
-            pprint(tokenizer.tabela)
+            # pprint(tokenizer.tabela)
             exit(0)
 
         state = self.TRANSITIONS[self.state]

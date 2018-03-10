@@ -37,9 +37,6 @@ def is_character(c):
 def is_hash(c):
     return c == '#'
 
-def is_simple_quote(c):
-    return c == "'" or c =='"'
-
 def is_single_quote(c):
     return c == "'"
 
@@ -72,3 +69,6 @@ def is_e(c):
 
 def is_hexa_char(c):
     return is_digit(c) or 'a' <= c <= 'f'
+
+def is_char(c):
+    return ord(c) >= 32 and ord(c) <= 126
