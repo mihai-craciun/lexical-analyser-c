@@ -243,10 +243,12 @@ class Dfa():
             ],
             self.STATES['&']: [
                 [lambda x: x == '&', self.STATES['OPERATOR']],
+                [lambda x: x == '=', self.STATES['OPERATOR']],
                 [anything, self.STATES['END']],
             ],
             self.STATES['|']: [
                 [lambda x: x == '|', self.STATES['OPERATOR']],
+                [lambda x: x == '=', self.STATES['OPERATOR']],
                 [anything, self.STATES['END']],
             ],
             self.STATES['!']: [
