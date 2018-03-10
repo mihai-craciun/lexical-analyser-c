@@ -10,7 +10,7 @@ class Tokenizer():
 
     def __init__(self, filepath):
         with open(filepath) as stream:
-            self.source_code = stream.read()
+            self.source_code = stream.read() + '\n'
         self.position = 0
         self.tabela = defaultdict(list)
 
@@ -22,12 +22,20 @@ class Tokenizer():
         self.position += consumed_chars
 
         MAPPER = {
-            'CHARACTER_CAN_BE_FOLLOWED_BY_EQUAL': 'OPERATOR',
             'STRING_END': 'STRING',
             'CHAR_END': 'CHAR',
-            'CHARACTER': 'OPERATOR',
-            'GROUP_CHARACTER': 'GROUP_OPERATOR',
-            'MULTI_LINE_COMMENT_END': 'MULTI_LINE_COMMENT',
+            'MULTI_LINE_COMMENT_END': 'COMMENT',
+            'SINGLE_LINE_COMMENT': 'COMMENT',
+            'NUMBER': 'INTEGER LITERAL',
+            'NUMBER_U': 'INTEGER LITERAL',
+            'NUMBER_L': 'INTEGER LITERAL',
+            'NUMBER_UL': 'INTEGER LITERAL',
+            'ZERO': 'INTEGER LITERAL',
+            'HEXA': 'HEXADECIMAL LITERAL',
+            'FLOAT_NUMBER': 'FLOATING LITERAL',
+            'EXPONENT': 'FLOATING LITERAL',
+            'EXPONENT_VALUE': 'FLOATING LITERAL',
+            'FLOAT_NUMBER_L': 'FLOATING LITERAL',
             '(': 'SEPARATOR',
             '[': 'SEPARATOR',
             '+': 'OPERATOR',
@@ -44,6 +52,7 @@ class Tokenizer():
             '^': 'OPERATOR',
             '>>': 'OPERATOR',
             '<<': 'OPERATOR',
+            '.': 'OPERATOR',
         }
 
         if token_type in MAPPER:
@@ -52,11 +61,6 @@ class Tokenizer():
         if token_type == 'IDENTIFIER':
             if token_val in self.KEYWORDS:
                 token_type = 'KEYWORD'
-        elif token_type == 'NEWLINE':
-            token_val = len(token_val) - 1
-            token_type = 'INDENTATION'
-        elif token_type in ['COMMENT', 'SPACE']:
-            return self.gettoken()
 
         if not token_type == 'NON_TOKEN_SEPARATOR':
             self.tabela[(token_type, token_val)].append(self.position - consumed_chars)
@@ -87,6 +91,7 @@ class Dfa():
         '^',
         '>>',
         '<<',
+        '.',
         # Separators
         'NON_TOKEN_SEPARATOR',
         'SEPARATOR',
@@ -112,15 +117,16 @@ class Dfa():
         'STRING_ESCAPE',
         'STRING_END',
 
-        'NEGATIVE_SIGN',
         'NUMBER',
-        'INT_U',
-        'INT_L',
-        'INT_UL',
+        'NUMBER_U',
+        'NUMBER_L',
+        'NUMBER_UL',
         'ZERO',
         'HEXA',
         'FLOAT_NUMBER',
         'EXPONENT',
+        'EXPONENT_VALUE',
+        'FLOAT_NUMBER_L',
         # Operators
         'OPERATOR',
         'CHARACTER',
@@ -159,6 +165,7 @@ class Dfa():
                 [lambda x: x == '!', self.STATES['!']],
                 [lambda x: x == '|', self.STATES['|']],
                 [lambda x: x == '^', self.STATES['^']],
+                [lambda x: x == '.', self.STATES['.']],
                 [is_separator, self.STATES['SEPARATOR']],
                 [is_operator, self.STATES['OPERATOR']],
                 [is_non_token_separator, self.STATES['NON_TOKEN_SEPARATOR']],
@@ -250,6 +257,11 @@ class Dfa():
                 [lambda x: x == '=', self.STATES['OPERATOR']],
                 [anything, self.STATES['END']],
             ],
+            self.STATES['.']: [
+                [is_digit, self.STATES['FLOAT_NUMBER']],
+                [is_allowed_char_for_id, self.STATES['OPERATOR']],
+                [anything, self.STATES['ERROR']],
+            ],
 
             # Separators
 
@@ -316,11 +328,49 @@ class Dfa():
             self.STATES['NUMBER']: [
                 [is_digit, self.STATES['NUMBER']],
                 [is_point, self.STATES['FLOAT_NUMBER']],
+                [lambda x: x == 'L', self.STATES['NUMBER_L']],
+                [lambda x: x == 'U', self.STATES['NUMBER_U']],
                 [is_e, self.STATES['EXPONENT']],
                 [anything, self.STATES['END']],
             ],
+            self.STATES['NUMBER_L']: [
+                [lambda x: x == 'U', self.STATES['NUMBER_UL']],
+                [anything, self.STATES['END']],
+            ],
+            self.STATES['NUMBER_U']: [
+                [lambda x: x == 'L', self.STATES['NUMBER_UL']],
+                [anything, self.STATES['END']],
+            ],
+            self.STATES['NUMBER_UL']: [
+                [anything, self.STATES['END']],
+            ],
             self.STATES['FLOAT_NUMBER']: [
+                [is_digit, self.STATES['FLOAT_NUMBER']],
+                [lambda x: x == 'L', self.STATES['FLOAT_NUMBER_L']],
+                [is_e, self.STATES['EXPONENT']],
+                [anything, self.STATES['END']],
+            ],
+            self.STATES['EXPONENT']: [
+                [is_negative_sign, self.STATES['EXPONENT_VALUE']],
+                [lambda x: x == '+', self.STATES['EXPONENT_VALUE']],
+                [is_digit, self.STATES['EXPONENT_VALUE']],
+                [anything, self.STATES['ERROR']],
+            ],
+            self.STATES['EXPONENT_VALUE']: [
+                [is_digit, self.STATES['EXPONENT_VALUE']],
+                [lambda x: x == 'L', self.STATES['FLOAT_NUMBER_L']],
+                [anything, self.STATES['END']],
+            ],
+            self.STATES['FLOAT_NUMBER_L']: [
+                [anything, self.STATES['END']],
+            ],
+            self.STATES['ZERO']: [
+                [lambda x: x == 'x', self.STATES['HEXA']],
                 [is_digit, self.STATES['NUMBER']],
+                [anything, self.STATES['END']],
+            ],
+            self.STATES['HEXA']: [
+                [is_hexa_char, self.STATES['HEXA']],
                 [anything, self.STATES['END']],
             ],
 
@@ -350,31 +400,6 @@ class Dfa():
             # Operators
 
             self.STATES['OPERATOR']: [
-                [anything, self.STATES['END']],
-            ],
-            self.STATES['NEGATIVE_SIGN']: [
-                [is_digit, self.STATES['NUMBER']],
-                [anything, self.STATES['CHARACTER']],
-            ],
-            self.STATES['CHARACTER_CAN_BE_FOLLOWED_BY_EQUAL']: [
-                [is_equal, self.STATES['GROUP_CHARACTER']],
-                [anything, self.STATES['END']],
-            ],
-            self.STATES['GROUP_CHARACTER']: [
-                [anything, self.STATES['END']],
-            ],
-            self.STATES['EXPONENT']: [
-                [is_negative_sign, self.STATES['NEGATIVE_SIGN']],
-                [is_digit, self.STATES['NUMBER']],
-                [anything, self.STATES['END']],
-            ],
-            self.STATES['ZERO']: [
-                [lambda x: x == 'x', self.STATES['HEXA']],
-                [is_digit, self.STATES['NUMBER']],
-                [anything, self.STATES['END']],
-            ],
-            self.STATES['HEXA']: [
-                [is_hexa_char, self.STATES['HEXA']],
                 [anything, self.STATES['END']],
             ],
         }
