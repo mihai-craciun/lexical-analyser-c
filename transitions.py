@@ -25,6 +25,12 @@ def is_newline(c):
 def is_tab(c):
     return '\t' == c
 
+def is_separator(c):
+    return c in ['[',']','(',')','{','}',',',';']
+
+def is_non_token_separator(c):
+    return c in ['\n','\t',' ']
+
 def is_character(c):
     return c in ['*', '+', '-', '(', ')', '[', ']', '{', '}', ':', '=', '.', ',', '>', '<', '!', ';']
 
@@ -51,6 +57,9 @@ def is_escape(c):
 
 def is_slash(c):
     return c =='/'
+
+def is_star(c):
+    return c == '*'
 
 def is_character_can_be_followed_by_equal(c):
     return c in ['+', '-', '*', '/', '<', '>']

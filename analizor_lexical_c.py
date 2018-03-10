@@ -26,6 +26,7 @@ class Tokenizer():
             'STRING_SIMPLE_QUOTES_END': 'STRING',
             'CHARACTER': 'OPERATOR',
             'GROUP_CHARACTER': 'GROUP_OPERATOR',
+            'MULTI_LINE_COMMENT_END': 'MULTI_LINE_COMMENT',
         }
 
         if token_type in MAPPER:
@@ -54,6 +55,10 @@ class Dfa():
         'CHARACTER',
         'NUMBER',
         'COMMENT',
+        'SINGLE_LINE_COMMENT',
+        'MULTI_LINE_COMMENT',
+        'MULTI_LINE_COMMENT_STAR',
+        'MULTI_LINE_COMMENT_END',
         'STRING_SIMPLE_QUOTES',
         'STRING_DOUBLE_QUOTES',
         'STRING_SIMPLE_QUOTES_END',
@@ -92,7 +97,7 @@ class Dfa():
                 [is_digit, self.STATES['NUMBER']],
                 [is_character_can_be_followed_by_equal, self.STATES['CHARACTER_CAN_BE_FOLLOWED_BY_EQUAL']],
                 [is_character, self.STATES['CHARACTER']],
-                [is_hash, self.STATES['COMMENT']],
+                [is_slash, self.STATES['COMMENT']],
                 [is_simple_quote, self.STATES['STRING_SIMPLE_QUOTES']],
                 [is_double_quote, self.STATES['STRING_DOUBLE_QUOTES']],
                 [anything, self.STATES['ERROR']],
@@ -123,8 +128,24 @@ class Dfa():
                 [anything, self.STATES['END']],
             ],
             self.STATES['COMMENT']: [
+                [is_slash, self.STATES['SINGLE_LINE_COMMENT']],
+                [is_star, self.STATES['MULTI_LINE_COMMENT']],
+                [anything, self.STATES['ERROR']],
+            ],
+            self.STATES['MULTI_LINE_COMMENT']: [
+                [is_star, self.STATES['MULTI_LINE_COMMENT_STAR']],
+                [anything, self.STATES['MULTI_LINE_COMMENT']]
+            ],
+            self.STATES['MULTI_LINE_COMMENT_STAR']: [
+                [is_slash, self.STATES['MULTI_LINE_COMMENT_END']],
+                [anything, self.STATES['MULTI_LINE_COMMENT']]
+            ],
+            self.STATES['MULTI_LINE_COMMENT_END']: [
+                [anything, self.STATES['END']]
+            ],
+            self.STATES['SINGLE_LINE_COMMENT']: [
                 [is_newline, self.STATES['END']],
-                [anything, self.STATES['COMMENT']],
+                [anything, self.STATES['SINGLE_LINE_COMMENT']]
             ],
             self.STATES['STRING_SIMPLE_QUOTES']: [
                 [is_escape, self.STATES['ESCAPING']],
