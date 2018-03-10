@@ -26,7 +26,10 @@ def is_tab(c):
     return '\t' == c
 
 def is_separator(c):
-    return c in ['[',']','(',')','{','}',',',';']
+    return c in [';',',','{','}',']',')']
+
+def is_operator(c):
+    return c in [':','?','.']
 
 def is_non_token_separator(c):
     return c in ['\n','\t',' ']

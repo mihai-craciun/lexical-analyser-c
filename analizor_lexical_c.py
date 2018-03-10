@@ -28,6 +28,22 @@ class Tokenizer():
             'CHARACTER': 'OPERATOR',
             'GROUP_CHARACTER': 'GROUP_OPERATOR',
             'MULTI_LINE_COMMENT_END': 'MULTI_LINE_COMMENT',
+            '(': 'SEPARATOR',
+            '[': 'SEPARATOR',
+            '+': 'OPERATOR',
+            '-': 'OPERATOR',
+            '*': 'OPERATOR',
+            '/': 'OPERATOR',
+            '%': 'OPERATOR',
+            '=': 'OPERATOR',
+            '<': 'OPERATOR',
+            '>': 'OPERATOR',
+            '&': 'OPERATOR',
+            '!': 'OPERATOR',
+            '|': 'OPERATOR',
+            '^': 'OPERATOR',
+            '>>': 'OPERATOR',
+            '<<': 'OPERATOR',
         }
 
         if token_type in MAPPER:
@@ -42,7 +58,8 @@ class Tokenizer():
         elif token_type in ['COMMENT', 'SPACE']:
             return self.gettoken()
 
-        self.tabela[(token_type, token_val)].append(self.position - consumed_chars)
+        if not token_type == 'NON_TOKEN_SEPARATOR':
+            self.tabela[(token_type, token_val)].append(self.position - consumed_chars)
         return self.position - consumed_chars
 
 
@@ -50,18 +67,38 @@ class Dfa():
 
     STATES_LIST = [
         'INITIAL',
+        # Identifiers
         'IDENTIFIER',
+        # Nondeterministic prefixes
+        '(',
+        '[',
+        '{',
+        '+',
+        '-',
+        '*',
+        '/',
+        '%',
+        '=',
+        '<',
+        '>',
+        '&',
+        '!',
+        '|',
+        '^',
+        '>>',
+        '<<',
+        # Separators
+        'NON_TOKEN_SEPARATOR',
+        'SEPARATOR',
         'SPACE',
         'NEWLINE',
-        'CHARACTER',
-        'NUMBER',
-        'COMMENT',
         # Comments
+        'COMMENT',
         'SINGLE_LINE_COMMENT',
         'MULTI_LINE_COMMENT',
         'MULTI_LINE_COMMENT_STAR',
         'MULTI_LINE_COMMENT_END',
-        # Char
+        # Literals
         'CHAR',
         'CHAR_ESCAPE',
         'CHAR_ESCAPE_X',
@@ -70,19 +107,26 @@ class Dfa():
         'CHAR_ESCAPE_OCTAL2',
         'CHAR_CHARACTER',
         'CHAR_END',
-        # String
+
         'STRING',
         'STRING_ESCAPE',
         'STRING_END',
+
         'NEGATIVE_SIGN',
-        'FLOAT_NUMBER',
-        'ESCAPING',
-        'CHARACTER_ESCAPED',
-        'CHARACTER_CAN_BE_FOLLOWED_BY_EQUAL',
-        'GROUP_CHARACTER',
-        'EXPONENT',
+        'NUMBER',
+        'INT_U',
+        'INT_L',
+        'INT_UL',
         'ZERO',
         'HEXA',
+        'FLOAT_NUMBER',
+        'EXPONENT',
+        # Operators
+        'OPERATOR',
+        'CHARACTER',
+        'CHARACTER_CAN_BE_FOLLOWED_BY_EQUAL',
+        'GROUP_CHARACTER',
+        # Special
         'END',
         'ERROR',
     ]
@@ -91,43 +135,137 @@ class Dfa():
     for index, state in enumerate(STATES_LIST):
         STATES[state] = index
 
-    NONPRODUCTING_STATES = [
-        STATES['ESCAPING'],
-        STATES['CHARACTER_ESCAPED'],
-    ]
+    NONPRODUCTING_STATES = []
 
     def __init__(self, input_list):
         self.state = 0
         self.TRANSITIONS = {
+
+            # Initial State
+
             self.STATES['INITIAL']: [
-                [is_negative_sign, self.STATES['NEGATIVE_SIGN']],
                 [lambda x: x == '0', self.STATES['ZERO']],
+                [lambda x: x == '(', self.STATES['(']],
+                [lambda x: x == '[', self.STATES['[']],
+                [lambda x: x == '+', self.STATES['+']],
+                [lambda x: x == '-', self.STATES['-']],
+                [lambda x: x == '*', self.STATES['*']],
+                [lambda x: x == '/', self.STATES['/']],
+                [lambda x: x == '%', self.STATES['%']],
+                [lambda x: x == '=', self.STATES['=']],
+                [lambda x: x == '<', self.STATES['<']],
+                [lambda x: x == '>', self.STATES['>']],
+                [lambda x: x == '&', self.STATES['&']],
+                [lambda x: x == '!', self.STATES['!']],
+                [lambda x: x == '|', self.STATES['|']],
+                [lambda x: x == '^', self.STATES['^']],
+                [is_separator, self.STATES['SEPARATOR']],
+                [is_operator, self.STATES['OPERATOR']],
+                [is_non_token_separator, self.STATES['NON_TOKEN_SEPARATOR']],
                 [is_allowed_first_char_for_id, self.STATES['IDENTIFIER']],
-                [is_space, self.STATES['SPACE']],
-                [is_newline, self.STATES['NEWLINE']],
                 [is_digit, self.STATES['NUMBER']],
-                [is_character_can_be_followed_by_equal, self.STATES['CHARACTER_CAN_BE_FOLLOWED_BY_EQUAL']],
-                [is_character, self.STATES['CHARACTER']],
-                [is_slash, self.STATES['COMMENT']],
                 [is_single_quote, self.STATES['CHAR']],
                 [is_double_quote, self.STATES['STRING']],
                 [anything, self.STATES['ERROR']],
             ],
+
+            # Identifiers
+
             self.STATES['IDENTIFIER']: [
                 [is_allowed_char_for_id, self.STATES['IDENTIFIER']],
                 [is_not_allowed_char_for_id, self.STATES['END']],
             ],
-            self.STATES['SPACE']: [
-                [is_space, self.STATES['SPACE']],
+
+            # Nondeterministic Prefixes
+
+            self.STATES['(']: [
+                [lambda x: x == ')', self.STATES['OPERATOR']],
                 [anything, self.STATES['END']],
             ],
-            self.STATES['NEWLINE']: [
-                [is_tab, self.STATES['NEWLINE']],
+            self.STATES['[']: [
+                [lambda x: x == ']', self.STATES['OPERATOR']],
+                [anything, self.STATES['END']],
+            ],
+            self.STATES['+']: [
+                [lambda x: x == '+', self.STATES['OPERATOR']],
+                [lambda x: x == '=', self.STATES['OPERATOR']],
+                [anything, self.STATES['END']],
+            ],
+            self.STATES['-']: [
+                [lambda x: x == '-', self.STATES['OPERATOR']],
+                [lambda x: x == '>', self.STATES['OPERATOR']],
+                [lambda x: x == '=', self.STATES['OPERATOR']],
+                [is_digit, self.STATES['NUMBER']],
+                [anything, self.STATES['END']],
+            ],
+            self.STATES['*']: [
+                [lambda x: x == '=', self.STATES['OPERATOR']],
+                [anything, self.STATES['END']]
+            ],
+            self.STATES['/']: [
+                [lambda x: x == '=', self.STATES['OPERATOR']],
+                [lambda x: x == '/', self.STATES['SINGLE_LINE_COMMENT']],
+                [lambda x: x == '*', self.STATES['MULTI_LINE_COMMENT']],
+                [anything, self.STATES['END']]
+            ],
+            self.STATES['%']: [
+                [lambda x: x == '=', self.STATES['OPERATOR']],
+                [anything, self.STATES['END']]
+            ],
+            self.STATES['=']: [
+                [lambda x: x == '=', self.STATES['OPERATOR']],
+                [anything, self.STATES['END']]
+            ],
+            self.STATES['<']: [
+                [lambda x: x == '=', self.STATES['OPERATOR']],
+                [lambda x: x == '<', self.STATES['<<']],
+                [anything, self.STATES['END']],
+            ],
+            self.STATES['>']: [
+                [lambda x: x == '=', self.STATES['OPERATOR']],
+                [lambda x: x == '>', self.STATES['>>']],
+                [anything, self.STATES['END']],
+            ],
+            self.STATES['<<']: [
+                [lambda x: x == '=', self.STATES['OPERATOR']],
+                [anything, self.STATES['END']],
+            ],
+            self.STATES['>>']: [
+                [lambda x: x == '=', self.STATES['OPERATOR']],
+                [anything, self.STATES['END']],
+            ],
+            self.STATES['&']: [
+                [lambda x: x == '&', self.STATES['OPERATOR']],
+                [anything, self.STATES['END']],
+            ],
+            self.STATES['|']: [
+                [lambda x: x == '|', self.STATES['OPERATOR']],
+                [anything, self.STATES['END']],
+            ],
+            self.STATES['!']: [
+                [lambda x: x == '=', self.STATES['OPERATOR']],
+                [anything, self.STATES['END']],
+            ],
+            self.STATES['^']: [
+                [lambda x: x == '=', self.STATES['OPERATOR']],
+                [anything, self.STATES['END']],
+            ],
+
+            # Separators
+
+            self.STATES['SEPARATOR']: [
                 [anything, self.STATES['END']],
             ],
             self.STATES['CHARACTER']: [
                 [anything, self.STATES['END']],
             ],
+            self.STATES['NON_TOKEN_SEPARATOR']: [
+                [is_non_token_separator, self.STATES['NON_TOKEN_SEPARATOR']],
+                [anything, self.STATES['END']],
+            ],
+
+            # Literals
+
             self.STATES['CHAR']: [
                 [is_escape, self.STATES['CHAR_ESCAPE']],
                 [is_char, self.STATES['CHAR_CHARACTER']],
@@ -185,6 +323,9 @@ class Dfa():
                 [is_digit, self.STATES['NUMBER']],
                 [anything, self.STATES['END']],
             ],
+
+            # Comments
+
             self.STATES['COMMENT']: [
                 [is_slash, self.STATES['SINGLE_LINE_COMMENT']],
                 [is_star, self.STATES['MULTI_LINE_COMMENT']],
@@ -204,6 +345,12 @@ class Dfa():
             self.STATES['SINGLE_LINE_COMMENT']: [
                 [is_newline, self.STATES['END']],
                 [anything, self.STATES['SINGLE_LINE_COMMENT']]
+            ],
+
+            # Operators
+
+            self.STATES['OPERATOR']: [
+                [anything, self.STATES['END']],
             ],
             self.STATES['NEGATIVE_SIGN']: [
                 [is_digit, self.STATES['NUMBER']],
