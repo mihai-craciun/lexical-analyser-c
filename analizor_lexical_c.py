@@ -389,6 +389,7 @@ class Dfa():
             ],
             self.STATES['MULTI_LINE_COMMENT_STAR']: [
                 [is_slash, self.STATES['MULTI_LINE_COMMENT_END']],
+                [is_star, self.STATES['MULTI_LINE_COMMENT_STAR']],
                 [anything, self.STATES['MULTI_LINE_COMMENT']]
             ],
             self.STATES['MULTI_LINE_COMMENT_END']: [
@@ -438,7 +439,7 @@ class Dfa():
                 return [''.join(self.output[:-1]), key, self.position-1]
 
 
-tokenizer = Tokenizer('./test.c')
+tokenizer = Tokenizer('./test_c2.c')
 while True:
     try:
         pozitie_de_caracter = tokenizer.gettoken()
