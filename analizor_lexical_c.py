@@ -32,7 +32,7 @@ class Tokenizer():
         if token_type in MAPPER:
             token_type = MAPPER[token_type]
 
-        if token_type == 'IDENT':
+        if token_type == 'IDENTIFIER':
             if token_val in self.KEYWORDS:
                 token_type = 'KEYWORD'
         elif token_type == 'NEWLINE':
@@ -49,7 +49,7 @@ class Dfa():
 
     STATES_LIST = [
         'INITIAL',
-        'IDENT',
+        'IDENTIFIER',
         'SPACE',
         'NEWLINE',
         'CHARACTER',
@@ -91,7 +91,7 @@ class Dfa():
             self.STATES['INITIAL']: [
                 [is_negative_sign, self.STATES['NEGATIVE_SIGN']],
                 [lambda x: x == '0', self.STATES['ZERO']],
-                [is_allowed_first_char_for_id, self.STATES['IDENT']],
+                [is_allowed_first_char_for_id, self.STATES['IDENTIFIER']],
                 [is_space, self.STATES['SPACE']],
                 [is_newline, self.STATES['NEWLINE']],
                 [is_digit, self.STATES['NUMBER']],
@@ -102,8 +102,8 @@ class Dfa():
                 [is_double_quote, self.STATES['STRING_DOUBLE_QUOTES']],
                 [anything, self.STATES['ERROR']],
             ],
-            self.STATES['IDENT']: [
-                [is_allowed_char_for_id, self.STATES['IDENT']],
+            self.STATES['IDENTIFIER']: [
+                [is_allowed_char_for_id, self.STATES['IDENTIFIER']],
                 [is_not_allowed_char_for_id, self.STATES['END']],
             ],
             self.STATES['SPACE']: [

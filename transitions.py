@@ -62,7 +62,7 @@ def is_star(c):
     return c == '*'
 
 def is_character_can_be_followed_by_equal(c):
-    return c in ['+', '-', '*', '/', '<', '>']
+    return c in ['+', '-', '*', '<', '>']
 
 def is_equal(c):
     return c == '='
