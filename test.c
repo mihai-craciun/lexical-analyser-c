@@ -20,4 +20,7 @@ int main(int argc, char** argv) {
     double db = 10.e+2;
     int dbb = 0xfffcedf;
     g();
+    char* str = "ano\
+    ther escaped\
+    string";
 }

@@ -13,6 +13,9 @@ def is_letter(c):
 def is_digit(c):
     return c.isdigit()
 
+def is_octal(c):
+    return c.isdigit() and c not in ['8','9']
+
 def anything(c):
     return True
 
@@ -20,7 +23,7 @@ def is_newline(c):
     return '\n' == c
 
 def is_separator(c):
-    return c in [';',',','{','}',']',')']
+    return c in [';',',','{','}',']',')','(','[']
 
 def is_operator(c):
     return c in [':','?']
