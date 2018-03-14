@@ -143,8 +143,7 @@ class Dfa():
         'CHAR_ESCAPE',
         'CHAR_ESCAPE_X',
         'CHAR_ESCAPE_HEX1',
-        'CHAR_ESCAPE_OCTAL1',
-        'CHAR_ESCAPE_OCTAL2',
+        'CHAR_ESCAPE_NUMBER',
         'CHAR_CHARACTER',
         'CHAR_END',
         'STRING',
@@ -310,17 +309,14 @@ class Dfa():
                 [anything, self.STATES['ERROR']],
             ],
             self.STATES['CHAR_ESCAPE']: [
-                [is_octal, self.STATES['CHAR_ESCAPE_OCTAL1']],
+                [is_digit, self.STATES['CHAR_ESCAPE_NUMBER']],
                 [lambda c: c == 'x', self.STATES['CHAR_ESCAPE_X']],
                 [is_char, self.STATES['CHAR_CHARACTER']],
                 [anything, self.STATES['ERROR']],
             ],
-            self.STATES['CHAR_ESCAPE_OCTAL1']: [
-                [is_octal, self.STATES['CHAR_ESCAPE_OCTAL2']],
-                [anything, self.STATES['ERROR']],
-            ],
-            self.STATES['CHAR_ESCAPE_OCTAL2']: [
-                [is_octal, self.STATES['CHAR_CHARACTER']],
+            self.STATES['CHAR_ESCAPE_NUMBER']: [
+                [is_digit, self.STATES['CHAR_ESCAPE_NUMBER']],
+                [is_single_quote, self.STATES['CHAR_END']],
                 [anything, self.STATES['ERROR']],
             ],
             self.STATES['CHAR_ESCAPE_X']: [
@@ -329,6 +325,7 @@ class Dfa():
             ],
             self.STATES['CHAR_ESCAPE_HEX1']: [
                 [is_hexa_char, self.STATES['CHAR_CHARACTER']],
+                [is_single_quote, self.STATES['CHAR_END']],
                 [anything, self.STATES['ERROR']],
             ],
             self.STATES['CHAR_END']: [

@@ -23,4 +23,9 @@ int main(int argc, char** argv) {
     char* str = "ano\
     ther escaped\
     string";
+    // int badhex = '\x';
+    int onedhex = '\xf';
+    int duedhex = '\xff';
+    // int triedhex = '\xfff';
+    // int nonhex = '\xaz';
 }
