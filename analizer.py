@@ -30,6 +30,9 @@ class LexicalAnalyzer():
 
     def gettoken(self):
 
+        if self.is_eof():
+            return None
+
         #Creating the dfa with the current remaining code
         DFA = Dfa(self.source[self.position:])
 
@@ -85,7 +88,7 @@ class LexicalAnalyzer():
             token_type = 'KEYWORD'
 
         if token_type in ['COMMENT', 'WHITESPACE']:
-            return None
+            return self.gettoken()
         
         #Getting the index for the token type
         token_type_index = LexicalAnalyzer.TOKEN_TYPES_TABLE.index(token_type)
@@ -464,7 +467,7 @@ class Dfa():
         
 
 # Main
-analyzer = LexicalAnalyzer('./test.c')
+analyzer = LexicalAnalyzer('./aici.txt')
 while not analyzer.is_eof():
     token = analyzer.gettoken()
     if token is not None:
